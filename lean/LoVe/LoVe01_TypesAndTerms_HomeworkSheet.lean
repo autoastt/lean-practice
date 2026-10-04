@@ -38,22 +38,22 @@ constructing a term. By hovering over `_`, you will see the current logical
 context. -/
 
 def B : (α → β) → (γ → α) → γ → β :=
-  sorry
+  fun f g c ↦ f (g c)
 
 def S : (α → β → γ) → (α → β) → α → γ :=
-  sorry
+  fun f g a ↦ f a (g a)
 
 def nonsense1 : (γ → (α → β) → α) → γ → β → α :=
-  sorry
+  fun f c b ↦ f c (fun g ↦ b)
 
 def nonsense2 : (α → α → β) → (β → γ) → α → β → γ :=
-  sorry
+  fun f g a b ↦ g b
 
 def nonsense3 : ((α → β) → γ → δ) → γ → β → δ :=
-  sorry
+  fun f c b ↦ f (fun a ↦ b) c
 
 def nonsense4 : (α → β) → (α → γ) → α → β → γ :=
-  sorry
+  fun f g a b ↦ g a
 
 /- 1.2. Complete the following definition.
 
@@ -63,7 +63,7 @@ follow the procedure described in the Hitchhiker's Guide.
 Note: Peirce is pronounced like the English word "purse". -/
 
 def weakPeirce : ((((α → β) → α) → α) → β) → β :=
-  sorry
+  fun f ↦ f (fun g ↦ g (fun a ↦ f (fun g ↦ a)))
 
 /- ## Question 2: Typing Derivation
 
@@ -74,10 +74,37 @@ draw horizontal bars) and `⊢` useful.
 Feel free to introduce abbreviations to avoid repeating large contexts `C`. -/
 
 -- write your solution here
+/- Let `B` := `f : α → β, g : γ → α, c : γ`. We have
+
+                        ––––––––––––– Var    ––––––––– Var
+                        B ⊢ g : γ → α        B ⊢ c : γ
+    ––––––––––––– Var   –––––––––––––––––––––––––––––– App
+    B ⊢ f : α → β       B ⊢ g c : α
+    ––––––––––––––––––––––––––––––––––– App
+    B ⊢ f (g c) : β
+    ––––––––––––––––––––––––––––––––––––––––––––––––––––– Fun
+    f : α → β, g : γ → α ⊢ (fun c : γ ↦ f (g c)) : γ → β
+    –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– Fun
+    f : α → β ⊢ (fun (g : γ → α) (c : γ) ↦ f (g c)) : (γ → α) → γ → β
+    –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– Fun
+    ⊢ (fun (f : α → β) (g : γ → α) (c : γ) ↦ f (g c)) : (α → β) → (γ → α) → γ → β -/
 
 /- 2.2. Show the typing derivation for your definition of `S` above, using
 ASCII or Unicode art. Start with an empty context. -/
 
 -- write your solution here
+/- Let `C` := `f : α → β → γ, g : α → β, a : α`. We have
 
+    ––––––––––––––––– Var   ––––––––– Var     ––––––––––––– Var   ––––––––– Var
+    C ⊢ f : α → β → γ       C ⊢ a : α         C ⊢ g : α → β       C ⊢ a : α
+    ––––––––––––––––––––––––––––––––– App     ––––––––––––––––––––––––––––– App
+    C ⊢ f a : β → γ                           C ⊢ g a : β
+    ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– App
+    C ⊢ f a (g a) : γ
+    ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– Fun
+    f : α → β → γ, g : α → β ⊢ (fun a : α ↦ f a (g a)) : α → γ
+    ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– Fun
+    f : α → β → γ ⊢ (fun (g : α → β) (a : α) ↦ f a (g a)) : (α → β) → α → γ
+    ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––– Fun
+    ⊢ (fun (f : α → β → γ) (g : α → β) (a : α) ↦ f a (g a)) : (α → β → γ) → (α → β) → α → γ -/
 end LoVe
