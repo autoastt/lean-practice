@@ -34,14 +34,16 @@ hypothesis is not strong enough. Start by proving the following generalization
 (using the `induction` tactic or pattern matching): -/
 
 theorem reverseAccu_Eq_reverse_append {α : Type} :
-    ∀as xs : List α, reverseAccu as xs = reverse xs ++ as :=
-  sorry
+    ∀as xs : List α, reverseAccu as xs = reverse xs ++ as
+  | as, []      => by simp [reverseAccu, reverse]
+  | as, x :: xs =>
+    by simp [reverseAccu, reverse, reverseAccu_Eq_reverse_append (x :: as) xs]
 
 /- 1.2. Derive the desired equation. -/
 
 theorem reverseAccu_eq_reverse {α : Type} (xs : List α) :
     reverseAccu [] xs = reverse xs :=
-  sorry
+  by simp [reverseAccu_Eq_reverse_append]
 
 /- 1.3. Prove the following property.
 
@@ -49,7 +51,7 @@ Hint: A one-line inductionless proof is possible. -/
 
 theorem reverseAccu_reverseAccu {α : Type} (xs : List α) :
     reverseAccu [] (reverseAccu [] xs) = xs :=
-  sorry
+  by simp [reverseAccu_eq_reverse, reverse_reverse]
 
 /- 1.4. Prove the following theorem by structural induction, as a "paper"
 proof. This is a good exercise to develop a deeper understanding of how
@@ -74,7 +76,32 @@ justified if you think they are obvious (to humans), but you should say which
 key theorems they depend on. You should be explicit whenever you use a function
 definition. -/
 
--- enter your paper proof here
+/- Proof by structural induction on `xs`, for arbitrary `as` (we prove the
+statement for all `as` at once, so that the induction hypothesis is general
+enough).
+
+Case `xs = []`: No induction hypothesis.
+  Goal: `reverseAccu as [] = reverse [] ++ as`.
+
+      reverseAccu as []
+    = as                      -- by definition of `reverseAccu`
+    = [] ++ as                -- by definition of `++`
+    = reverse [] ++ as        -- by definition of `reverse`
+
+Case `xs = x :: xs'`:
+  Induction hypothesis (IH), for all `as'`:
+    `reverseAccu as' xs' = reverse xs' ++ as'`
+  Goal: `reverseAccu as (x :: xs') = reverse (x :: xs') ++ as`.
+
+      reverseAccu as (x :: xs')
+    = reverseAccu (x :: as) xs'        -- by definition of `reverseAccu`
+    = reverse xs' ++ (x :: as)         -- by IH, with `as' := x :: as`
+    = reverse xs' ++ ([x] ++ as)       -- by definition of `++`
+    = (reverse xs' ++ [x]) ++ as       -- by associativity of `++`
+    = reverse (x :: xs') ++ as         -- by definition of `reverse`
+
+Note that the IH is used with `as' := x :: as`, not with `as` itself. This is
+why the theorem must be stated for all `as` before starting the induction. ∎ -/
 
 
 /- ## Question 2: Drop and Take
@@ -92,8 +119,10 @@ def drop {α : Type} : ℕ → List α → List α
 To avoid unpleasant surprises in the proofs, we recommend that you follow the
 same recursion pattern as for `drop` above. -/
 
-def take {α : Type} : ℕ → List α → List α :=
-  sorry
+def take {α : Type} : ℕ → List α → List α
+  | 0,     _       => []
+  | _ + 1, []      => []
+  | m + 1, x :: xs => x :: take m xs
 
 #eval take 0 [3, 7, 11]   -- expected: []
 #eval take 1 [3, 7, 11]   -- expected: [3]
@@ -108,12 +137,14 @@ Notice that they are registered as simplification rules thanks to the `@[simp]`
 attribute. -/
 
 @[simp] theorem drop_nil {α : Type} :
-    ∀n : ℕ, drop n ([] : List α) = [] :=
-  sorry
+    ∀n : ℕ, drop n ([] : List α) = []
+  | 0     => by rfl
+  | _ + 1 => by rfl
 
 @[simp] theorem take_nil {α : Type} :
-    ∀n : ℕ, take n ([] : List α) = [] :=
-  sorry
+    ∀n : ℕ, take n ([] : List α) = []
+  | 0     => by rfl
+  | _ + 1 => by rfl
 
 /- 2.3. Follow the recursion pattern of `drop` and `take` to prove the
 following theorems. In other words, for each theorem, there should be three
@@ -125,15 +156,21 @@ two arguments to `drop`). For the third case, `← add_assoc` might be useful. -
 theorem drop_drop {α : Type} :
     ∀(m n : ℕ) (xs : List α), drop n (drop m xs) = drop (n + m) xs
   | 0,     n, xs      => by rfl
-  -- supply the two missing cases here
+  | _ + 1, n, []      => by simp [drop]
+  | m + 1, n, x :: xs =>
+    by simp [drop, drop_drop m n xs]
 
 theorem take_take {α : Type} :
-    ∀(m : ℕ) (xs : List α), take m (take m xs) = take m xs :=
-  sorry
+    ∀(m : ℕ) (xs : List α), take m (take m xs) = take m xs
+  | 0,     _       => by rfl
+  | _ + 1, []      => by rfl
+  | m + 1, x :: xs => by simp [take, take_take m xs]
 
 theorem take_drop {α : Type} :
-    ∀(n : ℕ) (xs : List α), take n xs ++ drop n xs = xs :=
-  sorry
+    ∀(n : ℕ) (xs : List α), take n xs ++ drop n xs = xs
+  | 0,     _       => by rfl
+  | _ + 1, []      => by rfl
+  | m + 1, x :: xs => by simp [take, drop, take_drop m xs]
 
 
 /- ## Question 3: A Type of Terms
@@ -145,14 +182,19 @@ theorem take_drop {α : Type} :
             |  `lam` String Term   -- λ-expression (e.g., `λx. t`)
             |  `app` Term Term     -- application (e.g., `t u`) -/
 
--- enter your definition here
+inductive Term : Type where
+  | var : String → Term
+  | lam : String → Term → Term
+  | app : Term → Term → Term
 
 /- 3.2 (**optional**). Register a textual representation of the type `Term` as
 an instance of the `Repr` type class. Make sure to supply enough parentheses to
 guarantee that the output is unambiguous. -/
 
 def Term.repr : Term → String
--- enter your answer here
+  | Term.var x   => x
+  | Term.lam x t => "(λ" ++ x ++ ". " ++ Term.repr t ++ ")"
+  | Term.app t u => "(" ++ Term.repr t ++ " " ++ Term.repr u ++ ")"
 
 instance Term.Repr : Repr Term :=
   { reprPrec := fun t prec ↦ Term.repr t }
